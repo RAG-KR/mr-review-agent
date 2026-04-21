@@ -1,0 +1,18 @@
+{
+  "model": {
+    "name": "gemma4:26b",
+    "temperature": 0.2,
+    "maxTokens": 8192
+  },
+  "permissions": {
+    "read": ["git", "filesystem"],
+    "write": [],
+    "requireApproval": []
+  },
+  "review": {
+    "baseBranch": "main",
+    "includeTests": true,
+    "skillsPath": "./skills",
+    "outputPath": "./REVIEW.md"
+  }
+}
