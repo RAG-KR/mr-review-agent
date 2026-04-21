@@ -15,8 +15,16 @@
     "prepublishOnly": "npm run build"
   },
   "keywords": ["code-review", "ai", "ollama", "git", "merge-request"],
-  "author": "",
+  "author": "RaghavKR",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RAG-KR/mr-review-agent.git"
+  },
+  "homepage": "https://github.com/RAG-KR/mr-review-agent#readme",
+  "bugs": {
+    "url": "https://github.com/RAG-KR/mr-review-agent/issues"
+  },
   "dependencies": {
     "ollama": "^0.5.9",
     "commander": "^12.0.0",
