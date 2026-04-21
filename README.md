@@ -2,6 +2,10 @@
 
 AI-powered merge request review agent that runs locally using Ollama.
 
+**Use in ANY git repository. One command: `mr-review`**
+
+👉 **[Quick Start Guide](./QUICKSTART.md)** - Get running in 5 minutes!
+
 ## Features
 
 - 🚀 Run code reviews locally with `npm run review`
@@ -13,82 +17,118 @@ AI-powered merge request review agent that runs locally using Ollama.
 
 ## Prerequisites
 
-1. **Node.js** (v18 or higher)
-2. **Git** repository
-3. **Ollama** installed and running
+1. **Node.js** (v18+)
+2. **Ollama** with a model installed
    ```bash
-   # Install Ollama (macOS)
-   brew install ollama
+   # Install Ollama
+   brew install ollama  # macOS
+   # or download from ollama.ai
 
-   # Pull the model
+   # Pull a model (one-time)
    ollama pull gemma4:26b
    ```
 
 ## Installation
 
+### Option 1: Global Install (Use in ANY codebase)
 ```bash
-# Install dependencies
+# Clone this repo
+git clone <this-repo-url>
+cd mr-review-agent
+
+# Install globally
+npm install -g .
+
+# Now use in ANY git repository!
+cd /path/to/your/project
+mr-review
+```
+
+### Option 2: Local Development
+```bash
+# Clone and install
+git clone <this-repo-url>
+cd mr-review-agent
 npm install
 
-# Verify setup
-npm run dev
+# Build
+npm run build
+
+# Link globally (like global install)
+npm link
+
+# Use anywhere
+cd /path/to/any/project
+mr-review
+```
+
+### Option 3: Use in One Project
+```bash
+# In your project
+npm install /path/to/mr-review-agent
+
+# Add to package.json scripts
+{
+  "scripts": {
+    "review": "mr-review"
+  }
+}
+
+# Run
+npm run review
 ```
 
 ## Usage
 
-### Basic Review
-
-Review changes in your current branch against `main`:
-
+### Basic Usage
 ```bash
-npm run review
+# In any git branch with changes
+mr-review
+
+# Reads: REVIEW.md
 ```
 
-### Custom Options
-
+### Options
 ```bash
-# Use a different model
-npm run review -- --model gemma2:9b
+# Different model
+mr-review --model gemma2:9b
 
-# Compare against a different base branch
-npm run review -- --base-branch develop
+# Different base branch
+mr-review --base-branch develop
 
-# Save to a different output file
-npm run review -- --output ./reviews/my-review.md
+# Custom output
+mr-review --output my-review.md
 ```
 
-## Configuration
+## Configuration (Optional)
 
-Create or edit `.reviewrc` in your project root:
+Create `.reviewrc` in your project to customize:
 
 ```json
 {
   "model": {
     "name": "gemma4:26b",
-    "temperature": 0.2,
-    "maxTokens": 8192
+    "temperature": 0.2
   },
   "review": {
     "baseBranch": "main",
-    "includeTests": true,
-    "skillsPath": "./skills",
     "outputPath": "./REVIEW.md"
   }
 }
 ```
 
-## Skills System
+Works without config! Defaults are sensible.
 
-Add domain-specific knowledge and review criteria in the `skills/` folder:
+## Add Custom Review Rules (Optional)
 
+Create `skills/` folder in your project:
+
+```bash
+mkdir skills
+echo "# Our coding standards" > skills/code_standards.md
 ```
-skills/
-├── code_standards.md      # Your team's coding standards
-├── security_checklist.md  # Security review items
-└── domain_knowledge.md    # Business logic rules
-```
 
-The agent will automatically load and apply these guidelines during review.
+Agent will automatically use them!
 
 ## Workflow
 
