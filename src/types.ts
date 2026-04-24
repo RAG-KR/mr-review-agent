@@ -68,3 +68,46 @@ export interface ReviewMetadata {
   filesReviewed: number;
   linesChanged: number;
 }
+
+// Context Bundle Types
+export interface ContextBundle {
+  changedFiles: ContextFile[];
+  importContext: ContextFile[];
+  architecturalPatterns: ContextFile[];
+  duplicateEvidence: DuplicateEvidence[];
+  metadata: ContextMetadata;
+}
+
+export interface ContextFile {
+  path: string;
+  content: string;
+  truncated: boolean;
+  priority: 'changed' | 'import' | 'pattern' | 'evidence';
+  lineCount: number;
+}
+
+export interface DuplicateEvidence {
+  pattern: string;
+  description: string;
+  instances: DuplicateInstance[];
+}
+
+export interface DuplicateInstance {
+  file: string;
+  line: number;
+  snippet: string;
+}
+
+export interface ContextMetadata {
+  totalFiles: number;
+  totalLines: number;
+  estimatedTokens: number;
+  phases: PhaseMetadata;
+}
+
+export interface PhaseMetadata {
+  phase1_changes: number;
+  phase2_imports: number;
+  phase3_patterns: number;
+  phase4_duplicates: number;
+}

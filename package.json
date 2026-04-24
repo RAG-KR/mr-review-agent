@@ -1,6 +1,6 @@
 {
   "name": "mr-review-agent",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Local AI-powered merge request review agent",
   "main": "dist/index.js",
   "type": "module",
@@ -14,7 +14,13 @@
     "start": "node dist/index.js",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["code-review", "ai", "ollama", "git", "merge-request"],
+  "keywords": [
+    "code-review",
+    "ai",
+    "ollama",
+    "git",
+    "merge-request"
+  ],
   "author": "RaghavKR",
   "license": "MIT",
   "repository": {
@@ -26,9 +32,10 @@
     "url": "https://github.com/RAG-KR/mr-review-agent/issues"
   },
   "dependencies": {
-    "ollama": "^0.5.9",
-    "commander": "^12.0.0",
     "chalk": "^5.3.0",
+    "commander": "^12.0.0",
+    "glob": "^13.0.6",
+    "ollama": "^0.5.9",
     "ora": "^8.0.1"
   },
   "devDependencies": {

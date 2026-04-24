@@ -4,3 +4,5 @@ dist/
 .env
 REVIEW.md
 .DS_Store
+Secrets_npm
+.claude/settings.local.json

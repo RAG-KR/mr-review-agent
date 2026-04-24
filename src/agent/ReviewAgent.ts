@@ -7,6 +7,7 @@ import { DiffAnalyzer } from '../review/DiffAnalyzer.js';
 import { SkillsLoader } from '../review/SkillsLoader.js';
 import { PromptBuilder } from './PromptBuilder.js';
 import { ReportGenerator } from '../review/ReportGenerator.js';
+import { ContextBuilder } from '../context/ContextBuilder.js';
 import type { ReviewConfig, ReviewMetadata } from '../types.js';
 
 export interface ReviewOptions {
@@ -23,6 +24,7 @@ export class ReviewAgent {
   private skillsLoader: SkillsLoader;
   private promptBuilder: PromptBuilder;
   private reportGenerator: ReportGenerator;
+  private contextBuilder: ContextBuilder;
 
   constructor(config: ReviewConfig) {
     this.config = config;
@@ -32,6 +34,7 @@ export class ReviewAgent {
     this.skillsLoader = new SkillsLoader(config.review.skillsPath);
     this.promptBuilder = new PromptBuilder();
     this.reportGenerator = new ReportGenerator();
+    this.contextBuilder = new ContextBuilder(15);
   }
 
   static async create(options?: ReviewOptions): Promise<ReviewAgent> {
@@ -65,18 +68,41 @@ export class ReviewAgent {
     const gitDiff = await this.diffAnalyzer.analyze(diff, changedFiles);
     spinner.succeed(`Analyzed ${gitDiff.files.length} changed files`);
 
-    // 4. Load skills
+    // 4. Build intelligent context
+    const contextSpinner = ora('Building intelligent context...').start();
+    const repoRoot = process.cwd();
+    const contextBundle = await this.contextBuilder.build(gitDiff, repoRoot);
+
+    contextSpinner.succeed(
+      `Built context: ${contextBundle.metadata.totalFiles} files, ` +
+      `${contextBundle.metadata.totalLines} lines, ` +
+      `~${contextBundle.metadata.estimatedTokens} tokens`
+    );
+
+    console.log(chalk.gray(
+      `  Phase 1 (Changes): ${contextBundle.metadata.phases.phase1_changes} files\n` +
+      `  Phase 2 (Imports): ${contextBundle.metadata.phases.phase2_imports} files\n` +
+      `  Phase 3 (Patterns): ${contextBundle.metadata.phases.phase3_patterns} files\n` +
+      `  Phase 4 (Duplicates): ${contextBundle.metadata.phases.phase4_duplicates} found`
+    ));
+
+    // 5. Load skills
     const hasSkills = await this.skillsLoader.hasSkills();
     const skills = hasSkills ? await this.skillsLoader.loadSkills() : '';
     if (hasSkills) {
       console.log(chalk.gray('✓ Loaded domain knowledge'));
     }
 
-    // 5. Build prompts
+    // 6. Build prompts with context
     const systemPrompt = this.promptBuilder.buildSystemPrompt(skills);
-    const reviewPrompt = this.promptBuilder.buildReviewPrompt(gitDiff, branch, baseBranch);
+    const reviewPrompt = this.promptBuilder.buildReviewPromptWithContext(
+      gitDiff,
+      contextBundle,
+      branch,
+      baseBranch
+    );
 
-    // 6. Call Ollama for review
+    // 7. Call Ollama for review
     console.log(chalk.cyan(`\n🤖 Reviewing with ${this.ollama.getModelName()}...\n`));
 
     const reviewSpinner = ora('Generating review...').start();
@@ -98,7 +124,7 @@ export class ReviewAgent {
       throw error;
     }
 
-    // 7. Generate report
+    // 8. Generate report
     const metadata: ReviewMetadata = {
       branch,
       baseBranch,
@@ -110,7 +136,7 @@ export class ReviewAgent {
 
     await this.reportGenerator.generate(review, metadata, this.config.review.outputPath);
 
-    // 8. Display summary
+    // 9. Display summary
     this.displaySummary(metadata);
   }
 

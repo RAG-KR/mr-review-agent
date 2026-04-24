@@ -1,4 +1,4 @@
-import type { GitDiff } from '../types.js';
+import type { GitDiff, ContextBundle } from '../types.js';
 
 export class PromptBuilder {
   buildSystemPrompt(skills: string): string {
@@ -23,13 +23,35 @@ export class PromptBuilder {
 ${skills ? `## Domain Knowledge\n${skills}\n` : ''}
 
 ## Output Format
-Provide your review in markdown format with these sections:
-1. **Summary**: Brief overview of the changes
-2. **Issues Found**: List specific issues with file:line references
-3. **Recommendations**: Actionable suggestions for improvement
-4. **Positive Observations**: What was done well
 
-Be thorough but concise. Focus on the most important issues first.`;
+Use these 7 sections IN ORDER (copy the headers exactly):
+
+## What This MR Does
+3-5 sentences: what feature/fix, approach taken, key files modified
+
+## Current Issues
+### BLOCKER (must fix): Security, data loss, crashes (file:line with fix)
+### SHOULD FIX: Performance, error handling (file:line with fix)
+
+## Future Concerns
+Scalability, maintenance risks, edge cases (file:line with recommendation)
+
+## Code Quality
+DRY violations, pattern deviations, refactoring (file:line)
+
+## What Was Done Well
+Positive observations with examples
+
+## Comments Summary
+List ALL issues:
+- Must fix: #. file:line
+- Should fix: #. file:line
+- Consider: #. file:line
+
+## Final Decision
+**Status:** APPROVED or COMMENTS TO ADDRESS
+**Files:** N | **Risk:** LOW/MEDIUM/HIGH
+**Reason:** One sentence why`;
   }
 
   buildReviewPrompt(diff: GitDiff, branch: string, baseBranch: string): string {
@@ -67,6 +89,81 @@ Be thorough but concise. Focus on the most important issues first.`;
     }
 
     prompt += `\nPlease provide a thorough code review following the guidelines above.`;
+
+    return prompt;
+  }
+
+  buildReviewPromptWithContext(
+    diff: GitDiff,
+    context: ContextBundle,
+    branch: string,
+    baseBranch: string
+  ): string {
+    const { files, stats } = diff;
+
+    let prompt = `# Code Review Request
+
+## Context
+- Current Branch: ${branch}
+- Base Branch: ${baseBranch}
+- Files Changed: ${files.length}
+- Lines Added: ${stats.insertions}
+- Lines Removed: ${stats.deletions}
+- Context Files Analyzed: ${context.metadata.totalFiles}
+- Total Lines of Context: ${context.metadata.totalLines}
+
+## Changed Files Summary
+`;
+
+    for (const file of files) {
+      prompt += `- ${file.path} (${file.status}): +${file.additions} -${file.deletions}\n`;
+    }
+
+    prompt += `\n## Git Diff\n\`\`\`diff\n${this.truncateDiff(diff.rawDiff)}\n\`\`\`\n`;
+
+    if (context.changedFiles.length > 0) {
+      prompt += `\n## Changed Files (Full Context)\n\n`;
+      for (const file of context.changedFiles) {
+        prompt += `### ${file.path}${file.truncated ? ' (truncated)' : ''}\n\`\`\`\n${file.content}\n\`\`\`\n\n`;
+      }
+    }
+
+    if (context.importContext.length > 0) {
+      prompt += `\n## Import Context (Dependencies and Callers)\n`;
+      prompt += `These files are imported by or import the changed files.\n\n`;
+
+      for (const file of context.importContext) {
+        prompt += `### ${file.path}${file.truncated ? ' (truncated)' : ''}\n\`\`\`\n${file.content}\n\`\`\`\n\n`;
+      }
+    }
+
+    if (context.architecturalPatterns.length > 0) {
+      prompt += `\n## Architectural Patterns (Similar Implementations)\n`;
+      prompt += `These files show how similar features are implemented in this codebase.\n\n`;
+
+      for (const file of context.architecturalPatterns) {
+        prompt += `### ${file.path}${file.truncated ? ' (truncated)' : ''}\n\`\`\`\n${file.content}\n\`\`\`\n\n`;
+      }
+    }
+
+    if (context.duplicateEvidence.length > 0) {
+      prompt += `\n## Potential Duplicates Found\n`;
+      prompt += `The following patterns were found in multiple places:\n\n`;
+
+      for (const dup of context.duplicateEvidence) {
+        prompt += `### ${dup.pattern}: ${dup.description}\n`;
+        prompt += `Found in ${dup.instances.length} locations:\n\n`;
+
+        for (const instance of dup.instances) {
+          prompt += `- ${instance.file}:${instance.line}: ${instance.snippet}\n`;
+        }
+        prompt += `\n`;
+      }
+    }
+
+    prompt += `\n## Review Instructions
+
+Use the 7-section format from system prompt. Compare to architectural examples provided. Check duplicates found. Reference similar files for suggestions.`;
 
     return prompt;
   }
